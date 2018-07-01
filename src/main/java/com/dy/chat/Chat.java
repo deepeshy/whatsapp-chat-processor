@@ -4,31 +4,29 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 public class Chat {
 
-  private static class Message {
+  private static class Message implements Comparable<Message> {
 
     private String message;
-    private LocalDate date;
-
-    public Message(String message, LocalDate date) {
-      this.message = message;
-      this.date = date;
-    }
+    private LocalDateTime timestamp;
+    private long messageId;
 
     public void append(String extraMsg) {
       this.message = this.message + "\n" + extraMsg;
     }
 
-    public Message(String rawText) {
+    public Message(String rawText, long id) {
       String[] parts = rawText.split("]");
       String datePart = parts[0].replace("[", "");
       if (parts.length < 2) {
@@ -37,14 +35,16 @@ public class Chat {
       String messagePart = parts[1];
 
       DateTimeFormatter dtf = DateTimeFormatter.ofPattern("HH:mm, M/d/yyyy");
-      LocalDate dateVal = LocalDate.parse(datePart, dtf);
+      LocalDateTime timestampVal = LocalDateTime.parse(datePart, dtf);
 
-      this.date = dateVal;
+      this.timestamp = timestampVal;
       this.message = messagePart;
+      this.messageId = id;
     }
 
     @Override
     public String toString() {
+//      return "(" + messageId+") " + message;
       return message;
     }
 
@@ -52,8 +52,17 @@ public class Chat {
       return message;
     }
 
+    public LocalDateTime getTimestamp() {
+      return timestamp;
+    }
+
     public LocalDate getDate() {
-      return date;
+      return timestamp.toLocalDate();
+    }
+
+    @Override
+    public int compareTo(Message o) {
+      return Long.compare(messageId, o.messageId);
     }
   }
 
@@ -64,24 +73,32 @@ public class Chat {
       List<String> strings = Files
           .readAllLines(Paths.get("C:\\Users\\admin\\Desktop\\rawChat.txt"));
       Message messageBuffer = null;
+      long messageIdLocal = 1;
       for (String x : strings) {
+        x = x.replace("Deepesh Yadav:", "");
         if (partOfOldMessage(x)) {
           messageBuffer.append(x);
         } else {
-          messageBuffer = new Message(x);
+          messageBuffer = new Message(x, messageIdLocal);
+          messageIdLocal++;
           messages.add(messageBuffer);
         }
       }
-      System.out.println(messages);
     } catch (IOException e) {
       e.printStackTrace();
     }
     Map<LocalDate, Set<Message>> sortedMessages = messages.stream()
         .collect(Collectors.groupingBy(Message::getDate, Collectors.toSet()));
 
-    Map lhm = new LinkedHashMap(sortedMessages);
-    System.out.println(lhm);
-
+    Map<LocalDate, Set<Message>> lhm = new TreeMap(sortedMessages);
+    for (Map.Entry<LocalDate, Set<Message>> ent : lhm.entrySet()) {
+      System.out
+          .println("\n\n********************************************************************");
+      System.out.println(ent.getKey());
+      System.out.println("********************************************************************\n");
+      Set<Message> internallySorted = new TreeSet<>(ent.getValue());
+      internallySorted.stream().forEach(System.out::println);
+    }
   }
 
   private static boolean partOfOldMessage(String x) {
