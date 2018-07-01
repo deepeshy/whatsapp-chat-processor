@@ -16,6 +16,31 @@ import java.util.stream.Collectors;
 
 public class Chat {
 
+  List<Message> messages;
+
+  public Chat(String filename) {
+    this.messages = new ArrayList<>();
+
+    try {
+      List<String> strings = Files
+          .readAllLines(Paths.get(filename));
+      Message messageBuffer = null;
+      long messageIdLocal = 1;
+      for (String x : strings) {
+        x = x.replace("Deepesh Yadav:", "");
+        if (partOfOldMessage(x)) {
+          messageBuffer.append(x);
+        } else {
+          messageBuffer = new Message(x, messageIdLocal);
+          messageIdLocal++;
+          this.messages.add(messageBuffer);
+        }
+      }
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+  }
+
   private static class Message implements Comparable<Message> {
 
     private String message;
@@ -29,9 +54,6 @@ public class Chat {
     public Message(String rawText, long id) {
       String[] parts = rawText.split("]");
       String datePart = parts[0].replace("[", "");
-      if (parts.length < 2) {
-        System.out.println(rawText);
-      }
       String messagePart = parts[1];
 
       DateTimeFormatter dtf = DateTimeFormatter.ofPattern("HH:mm, M/d/yyyy");
@@ -68,52 +90,31 @@ public class Chat {
   }
 
   public static void main(String[] args) {
-    List<Message> messages = new ArrayList<>();
-
-    try {
-      List<String> strings = Files
-          .readAllLines(Paths.get("C:\\Users\\admin\\Desktop\\rawChat.txt"));
-      Message messageBuffer = null;
-      long messageIdLocal = 1;
-      for (String x : strings) {
-        x = x.replace("Deepesh Yadav:", "");
-        if (partOfOldMessage(x)) {
-          messageBuffer.append(x);
-        } else {
-          messageBuffer = new Message(x, messageIdLocal);
-          messageIdLocal++;
-          messages.add(messageBuffer);
-        }
-      }
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
-    Map<LocalDate, Set<Message>> sortedMessages = messages.stream()
-        .collect(Collectors.groupingBy(Message::getDate, Collectors.toSet()));
-
-    Map<LocalDate, Set<Message>> lhm = new TreeMap(sortedMessages);
-    for (Map.Entry<LocalDate, Set<Message>> ent : lhm.entrySet()) {
-      System.out
-          .println("\n\n********************************************************************");
-      System.out.println(ent.getKey());
-      System.out.println("********************************************************************\n");
-      Set<Message> internallySorted = new TreeSet<>(ent.getValue());
-      internallySorted.stream().forEach(System.out::println);
-    }
+    // TODO validation checks for filename
+    System.out.println(new Chat(args[0]).format());
   }
 
   private static boolean partOfOldMessage(String x) {
     return !x.contains("[");
   }
 
-  private String rawText;
-
-  public Chat(String rawText) {
-    this.rawText = rawText;
-  }
-
   public String format() {
-    return "";
+
+    StringBuilder sb = new StringBuilder();
+
+    Map<LocalDate, Set<Message>> sortedMessages = messages.stream()
+        .collect(Collectors.groupingBy(Message::getDate, Collectors.toSet()));
+
+    Map<LocalDate, Set<Message>> lhm = new TreeMap(sortedMessages);
+    for (Map.Entry<LocalDate, Set<Message>> ent : lhm.entrySet()) {
+      sb.append("\n\n********************************************************************\n");
+      sb.append("\t" + ent.getKey());
+      sb.append("\n");
+      sb.append("********************************************************************\n");
+      Set<Message> internallySorted = new TreeSet<>(ent.getValue());
+      internallySorted.stream().forEach(x -> sb.append(x.toString() + "\n"));
+    }
+    return sb.toString();
   }
 
 }
