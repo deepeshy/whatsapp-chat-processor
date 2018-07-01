@@ -45,7 +45,8 @@ public class Chat {
     @Override
     public String toString() {
 //      return "(" + messageId+") " + message;
-      return message;
+//      return message;
+      return "(" + timestamp.getHour() + ":" + timestamp.getMinute() + ") " + message;
     }
 
     public String getMessage() {
